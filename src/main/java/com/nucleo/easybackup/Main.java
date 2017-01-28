@@ -56,16 +56,33 @@ public class Main {
     }
 
     private static boolean executeBackup(String command) {
-        System.out.println("Making backup\n" + command);
+        System.out.println("Starting backup command: " + command);
+        System.out.println();
+        
+        Timer timer = new Timer();
+        timer.start();
 
         try {
             Process p = Runtime.getRuntime().exec(new String[] { "bash", "-c", command });
-            new StreamPrinter(p.getErrorStream()).start();
-            new StreamPrinter(p.getInputStream()).start();
+            
+            StreamPrinter errPrinter = new StreamPrinter(p.getErrorStream());
+            StreamPrinter stdPrinter = new StreamPrinter(p.getInputStream());
+            errPrinter.start();
+            stdPrinter.start();
 
             int exitVal = p.waitFor();
+            errPrinter.join();
+            stdPrinter.join();
+            
+            timer.stop();
+            System.out.println();
+            System.out.println("====================================================");
+            System.out.println("Backup operation took " + timer.getDurationAsString());
+            
             boolean success = exitVal == 0;
             System.out.println("Exit value: " + exitVal + " (" + (success ? "success" : "failure") + ")");
+            System.out.println("====================================================");
+            System.out.println();
             
             return success;
         } catch (Exception e) {
@@ -80,14 +97,14 @@ public class Main {
         String backupFilePath = null;
         switch (type) {
         case TAR: 
-            backupFilePath = dest.resolve(name + "_" + DATE_TIME_FORMAT + ".tar.gz").toString();
+            backupFilePath = dest.resolve(name + "__" + DATE_TIME_FORMAT + ".tar.gz").toString();
             command = "tar cvzf \"" + backupFilePath + "\" \"" + src + "\"";
             for (String exclude : excludes) {
                 command += " --exclude=\"" + exclude + "\"";
             }
             break;
         case SQSH:
-            backupFilePath = dest.resolve(name + "_" + DATE_TIME_FORMAT + ".sqsh").toString();
+            backupFilePath = dest.resolve(name + "__" + DATE_TIME_FORMAT + ".sqsh").toString();
             command = "mksquashfs \"" + src + "\" \"" + backupFilePath + "\"";
             if (!excludes.isEmpty()) {
                 command += " -e";
@@ -104,7 +121,7 @@ public class Main {
         List<File> backups = new LinkedList<File>(Arrays.asList(dest.toFile().listFiles()));
         Collections.sort(backups);
         while (backups.size() > retain) {
-            System.out.println("Removing old backup\n" + backups.get(0));
+            System.out.println("Removing old backup: " + backups.get(0));
             backups.get(0).delete();
             backups.remove(0);
         }
