@@ -77,22 +77,22 @@ public class Main {
 
     private static String buildBackupCommand(Type type, String name, Path src, Path dest, List<String> excludes) {
         String command = null;
-        String newBackupPath = null;
+        String backupFilePath = null;
         switch (type) {
         case TAR: 
-            newBackupPath = dest.resolve(name + "_" + DATE_TIME_FORMAT + ".tar.gz").toString();
-            command = "tar cvzf " + newBackupPath + " " + src;
+            backupFilePath = dest.resolve(name + "_" + DATE_TIME_FORMAT + ".tar.gz").toString();
+            command = "tar cvzf \"" + backupFilePath + "\" \"" + src + "\"";
             for (String exclude : excludes) {
-                command += " --exclude=" + exclude;
+                command += " --exclude=\"" + exclude + "\"";
             }
             break;
         case SQSH:
-            newBackupPath = dest.resolve(name + "_" + DATE_TIME_FORMAT + ".sqsh").toString();
-            command = "mksquashfs " + src + " " + newBackupPath;
+            backupFilePath = dest.resolve(name + "_" + DATE_TIME_FORMAT + ".sqsh").toString();
+            command = "mksquashfs \"" + src + "\" \"" + backupFilePath + "\"";
             if (!excludes.isEmpty()) {
                 command += " -e";
                 for (String exclude : excludes) {
-                    command += " " + exclude;
+                    command += " \"" + exclude + "\"";
                 }    
             }
             break;
