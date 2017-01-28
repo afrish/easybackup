@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<project default="create_runnable" name="Create Runnable">
+    <property name="dir.buildfile" value="."/>
+    <property name="dir.jarfile" value="${dir.buildfile}/target"/>
+    <target name="create_runnable">
+        <jar destfile="${dir.jarfile}/easybackup.jar" filesetmanifest="mergewithoutmain">
+            <manifest>
+                <attribute name="Main-Class" value="com.nucleo.easybackup.Main"/>
+                <attribute name="Class-Path" value="."/>
+            </manifest>
+            <fileset dir="${dir.buildfile}/target/classes"/>
+        </jar>
+    	
+    	<exec executable="/bin/sh">
+    	  <arg value="-c" />
+    	  <arg value="cat stub.sh ${dir.buildfile}/target/easybackup.jar > ${dir.buildfile}/target/easybackup.run" />
+    	</exec>
+    	
+    	<exec executable="/bin/sh">
+    	  <arg value="-c" />
+    	  <arg value="chmod +x ${dir.buildfile}/target/easybackup.run" />
+    	</exec>
+    </target>
+</project>
