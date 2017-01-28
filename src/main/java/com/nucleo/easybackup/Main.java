@@ -53,8 +53,9 @@ public class Main {
 
         dest.toFile().mkdirs();
 
+        String command = buildBackupCommand(type, name, src, dest, excludes);
+
         try (Logger log = new Logger(dest, name)) {
-            String command = buildBackupCommand(type, name, src, dest, excludes);
             executeBackup(command, log);
             cleanOldBackups(retain, dest, log);
         }
