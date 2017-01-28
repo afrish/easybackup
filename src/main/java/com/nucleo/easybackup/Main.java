@@ -4,23 +4,52 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
+import ml.options.OptionData;
+import ml.options.OptionSet;
+import ml.options.Options;
+import ml.options.Options.Multiplicity;
+import ml.options.Options.Separator;
+
 public class Main {
 
+    private static final String DATE_TIME_FORMAT = "`date '+%Y_%m_%d__%H_%M_%S'`";
+
     public static void main(String[] args) throws IOException {
-        String name = args[0];
-        Path src = Paths.get(args[1]);
-        Path dest = Paths.get(args[2]);
-        long retain = Long.parseLong(args[3]);
+        Options options = new Options(args, 2);
+        OptionSet set = options.getSet();
+        set.addOption("n", Separator.EQUALS, Multiplicity.ONCE);
+        set.addOption("t", Separator.EQUALS, Multiplicity.ONCE);
+        set.addOption("r", Separator.EQUALS, Multiplicity.ONCE);
+        set.addOption("e", Separator.EQUALS, Multiplicity.ZERO_OR_MORE);
+        
+        if (!options.check()) {
+            System.out.println(options.getCheckErrors());
+            System.exit(1);
+        }
+        
+        String name = set.getOption("n").getResultValue(0);
+        Type type = Type.valueOf(set.getOption("t").getResultValue(0).toUpperCase());
+        int retain = Integer.parseInt(set.getOption("r").getResultValue(0));
+        
+        List<String> excludes = new ArrayList<>();
+        OptionData excludeOption = set.getOption("e");
+        for (int i = 0; i < excludeOption.getResultCount(); i++) {
+            excludes.add(excludeOption.getResultValue(i));
+        }
+        
+        Path src = Paths.get(set.getData().get(0));
+        Path dest = Paths.get(set.getData().get(1));
 
         File destAsFile = dest.toFile();
         destAsFile.mkdirs();
                 
-        String command = buildBackupCommand(args, name, src, dest);
+        String command = buildBackupCommand(type, name, src, dest, excludes);
         executeBackup(command);
         cleanOldBackups(retain, dest);
 
@@ -46,24 +75,32 @@ public class Main {
         }
     }
 
-    private static String buildBackupCommand(String[] args, String name, Path src, Path dest) {
-        Type type = Type.valueOf(args[4].toUpperCase());
+    private static String buildBackupCommand(Type type, String name, Path src, Path dest, List<String> excludes) {
         String command = null;
         String newBackupPath = null;
         switch (type) {
         case TAR: 
-            newBackupPath = dest.resolve(name + "_`date '+%Y_%m_%d__%H_%M_%S'`.tar.gz").toString();
+            newBackupPath = dest.resolve(name + "_" + DATE_TIME_FORMAT + ".tar.gz").toString();
             command = "tar cvzf " + newBackupPath + " " + src;
+            for (String exclude : excludes) {
+                command += " --exclude=" + exclude;
+            }
             break;
         case SQSH:
-            newBackupPath = dest.resolve(name + "_`date '+%Y_%m_%d__%H_%M_%S'`.sqsh").toString();
+            newBackupPath = dest.resolve(name + "_" + DATE_TIME_FORMAT + ".sqsh").toString();
             command = "mksquashfs " + src + " " + newBackupPath;
+            if (!excludes.isEmpty()) {
+                command += " -e";
+                for (String exclude : excludes) {
+                    command += " " + exclude;
+                }    
+            }
             break;
         }
         return command;
     }
 
-    private static void cleanOldBackups(long retain, Path dest) {
+    private static void cleanOldBackups(int retain, Path dest) {
         List<File> backups = new LinkedList<File>(Arrays.asList(dest.toFile().listFiles()));
         Collections.sort(backups);
         while (backups.size() > retain) {
