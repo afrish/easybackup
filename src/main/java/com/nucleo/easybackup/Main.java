@@ -55,13 +55,20 @@ public class Main {
 
         String command = buildBackupCommand(type, name, src, dest, excludes);
 
+        int exitVal;
         try (Logger log = new Logger(dest, name)) {
-            executeBackup(command, log);
-            cleanOldBackups(retain, dest, log);
+            exitVal = executeBackup(command, log);
+            if (exitVal == 0) {
+                cleanOldBackups(retain, dest, log);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            exitVal = 1;
         }
+        System.exit(exitVal);
     }
 
-    private static void executeBackup(String command, Logger log) throws IOException, InterruptedException {
+    private static int executeBackup(String command, Logger log) throws IOException, InterruptedException {
         log.println("Starting backup command: " + command);
         log.println();
 
@@ -88,6 +95,8 @@ public class Main {
         log.println("Exit value: " + exitVal + " (" + (success ? "success" : "failure") + ")");
         log.println("====================================================");
         log.println();
+
+        return exitVal;
     }
 
     private static String buildBackupCommand(Type type, String name, Path src, Path dest, List<String> excludes) {
@@ -122,7 +131,7 @@ public class Main {
     }
 
     private static void cleanOldFiles(int retain, Path dest, FilenameFilter filter, Logger log, String message) {
-        List<File> files = new LinkedList<File>(Arrays.asList(dest.toFile().listFiles(filter)));
+        List<File> files = new LinkedList<>(Arrays.asList(dest.toFile().listFiles(filter)));
         Collections.sort(files);
         while (files.size() > retain) {
             log.println(message + files.get(0));

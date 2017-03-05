@@ -4,6 +4,7 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
 import java.nio.file.Path;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -11,12 +12,11 @@ import java.util.Date;
 public class Logger implements Closeable {
     public static final String LOG_EXTENSION = ".log";
     private static final SimpleDateFormat LOG_DATE_TIME_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
-    private File logFile;
     private PrintWriter writer;
     
-    public Logger(Path dest, String name) throws FileNotFoundException {
-        logFile = dest.resolve(name + LOG_EXTENSION).toFile();
-        writer = new PrintWriter(logFile);
+    public Logger(Path dest, String name) throws FileNotFoundException, UnsupportedEncodingException {
+        File logFile = dest.resolve(name + LOG_EXTENSION).toFile();
+        writer = new PrintWriter(logFile, "UTF-8");
     }
     
     public void println(String line) {
@@ -29,6 +29,11 @@ public class Logger implements Closeable {
         String line = now();
         System.out.println(line);
         writer.println(line);
+    }
+
+    public void print(char ch) {
+        System.out.print(ch);
+        writer.print(ch);
     }
 
     private String now() {
